@@ -65,9 +65,9 @@ public:
                         Shutdown                     = 4,
                         ShuntVoltageContinuous       = 5,
                         BusVoltageContinuous         = 6,
-                        ShuntAndBusVoltageContinuous = 7};
+                        ShuntAndBusVoltageContinuous = 7}; //default
 
-    enum eAlertTrigger {ClearTriggers                = 0x0000,
+    enum eAlertTrigger {ClearTriggers                = 0x0000, //default
                         ShuntVoltageOverLimit        = 0x8000,
                         ShuntVoltageUnderLimit       = 0x4000,
                         BusVoltageOverLimit          = 0x2000,
@@ -97,7 +97,7 @@ public:
     status Wakeup();    //Wake-up and enter the last operating mode
 
     //The trigger value is in microwatts or microvolts, depending on the trigger
-    status ConfigureAlertPinTrigger(enum eAlertTrigger aAlertTrigger, int32_t aValue); //Pin triggers by going low (not high)
+    status ConfigureAlertPinTrigger(enum eAlertTrigger aAlertTrigger, int32_t aValue, bool aLatching=false);
     status ResetAlertPin();
     status ResetAlertPin(enum  eAlertTriggerCause& aAlertTriggerCause ); //provides feedback as to what caused the alert
 
@@ -126,6 +126,7 @@ protected:
     static const uint16_t cOperatingModeMask           = 0x0007;
     static const uint16_t cAlertPinModeMask            = 0xFC00;
     static const uint16_t cAlertCauseMask              = 0x001E;
+	static const uint16_t cAlertLatchingMode           = 0x0001;
     static const uint16_t cSampleAvgMask               = 0x0E00;
     static const uint16_t cBusVoltageConvTimeMask      = 0x01C0;
     static const uint16_t cShuntVoltageConvTimeMask    = 0x0038;

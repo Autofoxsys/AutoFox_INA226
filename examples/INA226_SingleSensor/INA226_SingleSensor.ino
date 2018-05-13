@@ -1,19 +1,14 @@
 #include <Wire.h>
 #include <Autofox_INA226.h>
 
-const int ALERT_PIN = 8;
 const uint8_t INA226_IC2_ADDRESS = 0x40;
 const double SHUNT_RESISTOR_OHMS = 0.1;
 
 AutoFox_INA226 ina226;
 
-
-
 void setup() {
   // put your setup code here, to run once:
   Serial.begin(115200);
-
-  pinMode(ALERT_PIN, INPUT);
 
   status theErrorCode = ina226.Init(INA226_IC2_ADDRESS, SHUNT_RESISTOR_OHMS);
 

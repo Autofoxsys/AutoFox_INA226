@@ -241,7 +241,7 @@ status AutoFox_INA226::SetOperatingMode(enum eOperatingMode aOpMode)
 	return WriteRegister(INA226_Registers::INA226_CONFIG, mConfigRegister);
 }
 //----------------------------------------------------------------------------
-status  AutoFox_INA226::ConfigureAlertPinTrigger(enum eAlertTrigger aAlertTrigger, int32_t aValue)
+status  AutoFox_INA226::ConfigureAlertPinTrigger(enum eAlertTrigger aAlertTrigger, int32_t aValue, bool aLatching)
 {
 	uint16_t theMaskEnableRegister;
 
@@ -252,6 +252,9 @@ status  AutoFox_INA226::ConfigureAlertPinTrigger(enum eAlertTrigger aAlertTrigge
 	theMaskEnableRegister &= ~ cAlertPinModeMask;
 	//...and prepare the new alert configuration (we'll actually set it down below)
 	theMaskEnableRegister |= (uint16_t)aAlertTrigger;
+	if(aLatching){
+		theMaskEnableRegister |= cAlertLatchingMode;
+	}
 
 	//We need to convert the value supplied (parameter) for the trigger to an INA226 register value.
 	//The supplied value could be a shunt voltage, bus voltage or power reading.  All values are
@@ -284,6 +287,7 @@ status  AutoFox_INA226::ConfigureAlertPinTrigger(enum eAlertTrigger aAlertTrigge
 	default:
 		return BAD_PARAMETER;
 	}
+
 
 	//before we set the new config for the alert pin, set the value that will trigger the alert
 	CALL_FN( WriteRegister(INA226_Registers::INA226_ALERT_LIMIT, (int16_t)theAlertValue) );
