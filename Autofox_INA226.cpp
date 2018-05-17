@@ -1,32 +1,32 @@
 /*
-   Library to facilitate use of the INA226 Voltage, Current & Power monitor
-   from Texas Intruments.
-   See spec. here: http://www.ti.com/lit/ds/symlink/ina226.pdf.
+Library to facilitate use of the INA226 Voltage, Current & Power monitor
+from Texas Intruments.
+See spec. here: http://www.ti.com/lit/ds/symlink/ina226.pdf.
 
-   Copyright [2018] [AutoFox] autofoxsys@gmail.com
+Copyright [2018] [AutoFox] autofoxsys@gmail.com
 
-   Licensed under the Apache License, Version 2.0 (the "License");
-   you may not use this file except in compliance with the License.
-   You may obtain a copy of the License at
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
 
-     http://www.apache.org/licenses/LICENSE-2.0
+http://www.apache.org/licenses/LICENSE-2.0
 
-   Unless required by applicable law or agreed to in writing, software
-   distributed under the License is distributed on an "AS IS" BASIS,
-   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-   See the License for the specific language governing permissions and
-   limitations under the License.
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
 
-   This library is for Arduino.
+This library is for Arduino.
 
-   In developing this library, besides reading the INA226 spec, I consulted
-   the following code:
+In developing this library, besides reading the INA226 spec, I consulted
+the following code:
 
-   * Linux drivers for the INA family (written in C)
-   * https://github.com/SV-Zanshin/INA226 (most useful)
+* Linux drivers for the INA family (written in C)
+* https://github.com/SV-Zanshin/INA226 (most useful)
 
-   PLATFORM DEPENDENCE
-   Embodied in 3 functions related to I2C reading/writing
+PLATFORM DEPENDENCE
+Embodied in 3 functions related to I2C reading/writing
 
 */
 
@@ -91,7 +91,7 @@ status AutoFox_INA226::Init(uint8_t aI2C_Address, double aShuntResistor_Ohms, do
 	//factors that we must apply to the current and power measurements that we read from
 	//the INA226 device.
 	CALL_FN( setupCalibration(aShuntResistor_Ohms, aMaxCurrent_Amps) );
-	
+
 	mInitialized = true;
 	return OK;
 }
@@ -135,14 +135,14 @@ status AutoFox_INA226::CheckI2cAddress(uint8_t aI2C_Address)
 
 status AutoFox_INA226::ReadRegister(uint8_t aRegister, uint16_t& aValue)
 {
-    Wire.beginTransmission(mI2C_Address);
-    Wire.write(aRegister);
+	Wire.beginTransmission(mI2C_Address);
+	Wire.write(aRegister);
 	Wire.endTransmission();
-    if( Wire.requestFrom((int)mI2C_Address, (int)2) == 2 ){
-        aValue = Wire.read();
-        aValue = aValue<<8 | Wire.read();
+	if( Wire.requestFrom((int)mI2C_Address, (int)2) == 2 ){
+		aValue = Wire.read();
+		aValue = aValue<<8 | Wire.read();
 		return OK;
-    }else{
+	}else{
 		return FAIL;
 	}
 }
@@ -151,11 +151,11 @@ status AutoFox_INA226::ReadRegister(uint8_t aRegister, uint16_t& aValue)
 status AutoFox_INA226::WriteRegister(uint8_t aRegister, uint16_t aValue)
 {
 	int theBytesWriten = 0;
-    Wire.beginTransmission(mI2C_Address);
-    theBytesWriten += Wire.write(aRegister);
+	Wire.beginTransmission(mI2C_Address);
+	theBytesWriten += Wire.write(aRegister);
 	theBytesWriten += Wire.write((aValue >> 8) & 0xFF);
 	theBytesWriten += Wire.write(aValue & 0xFF);      
-    Wire.endTransmission();
+	Wire.endTransmission();
 
 	return (theBytesWriten==3) ? OK : FAIL;
 }
@@ -222,8 +222,8 @@ status AutoFox_INA226::Wakeup()
 	uint16_t theLastOperatingMode = mConfigRegister & cOperatingModeMask;
 	if(theLastOperatingMode == eOperatingMode::Shutdown ||
 		theLastOperatingMode == 0){
-		mConfigRegister &= ~cOperatingModeMask;
-		mConfigRegister |= eOperatingMode::ShuntAndBusVoltageContinuous;
+			mConfigRegister &= ~cOperatingModeMask;
+			mConfigRegister |= eOperatingMode::ShuntAndBusVoltageContinuous;
 	}
 
 	return WriteRegister(INA226_Registers::INA226_CONFIG, mConfigRegister);
@@ -325,7 +325,7 @@ status AutoFox_INA226::ResetAlertPin(enum  eAlertTriggerCause& aAlertTriggerCaus
 status AutoFox_INA226::ConfigureVoltageConversionTime(int aIndexToConversionTimeTable)
 {
 	CHECK_INITIALIZED();
-	
+
 	if(aIndexToConversionTimeTable < 0 || aIndexToConversionTimeTable > cMaxConvTimeTblIdx ){
 		return BAD_PARAMETER;
 	}
@@ -347,7 +347,7 @@ status AutoFox_INA226::ConfigureVoltageConversionTime(int aIndexToConversionTime
 status AutoFox_INA226::ConfigureNumSampleAveraging(int aIndexToSampleAverageTable)
 {
 	CHECK_INITIALIZED();
-	
+
 	if(aIndexToSampleAverageTable < 0 || aIndexToSampleAverageTable > cMaxSampleAvgTblIdx ){
 		return BAD_PARAMETER;
 	}

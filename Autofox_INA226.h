@@ -126,7 +126,7 @@ protected:
     static const uint16_t cOperatingModeMask           = 0x0007;
     static const uint16_t cAlertPinModeMask            = 0xFC00;
     static const uint16_t cAlertCauseMask              = 0x001E;
-	static const uint16_t cAlertLatchingMode           = 0x0001;
+    static const uint16_t cAlertLatchingMode           = 0x0001;
     static const uint16_t cSampleAvgMask               = 0x0E00;
     static const uint16_t cBusVoltageConvTimeMask      = 0x01C0;
     static const uint16_t cShuntVoltageConvTimeMask    = 0x0038;
