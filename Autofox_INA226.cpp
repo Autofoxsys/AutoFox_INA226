@@ -31,7 +31,7 @@ Embodied in 3 functions related to I2C reading/writing
 */
 
 #include "Autofox_INA226.h"
-#include <Wire.h>
+//#include <Wire.h>
 #include <math.h>
 
 
@@ -122,19 +122,22 @@ status AutoFox_INA226::setupCalibration(double aShuntResistor_Ohms, double aMaxC
 
 status AutoFox_INA226::CheckI2cAddress(uint8_t aI2C_Address)
 {
+#if defined(__AVR__)
 	Wire.begin();
 	//Check if there's a device (any I2C device) at the specified address.
 	Wire.beginTransmission(aI2C_Address);
-	if(Wire.endTransmission() != 0){
-		return INVALID_I2C_ADDRESS;
+	if(Wire.endTransmission() == 0){
+		return OK;
 	}
-	return OK;
+#endif
+	return INVALID_I2C_ADDRESS;
 }
 
 //----------------------------------------------------------------------------
 
 status AutoFox_INA226::ReadRegister(uint8_t aRegister, uint16_t& aValue)
 {
+#if defined(__AVR__)
 	Wire.beginTransmission(mI2C_Address);
 	Wire.write(aRegister);
 	Wire.endTransmission();
@@ -142,21 +145,22 @@ status AutoFox_INA226::ReadRegister(uint8_t aRegister, uint16_t& aValue)
 		aValue = Wire.read();
 		aValue = aValue<<8 | Wire.read();
 		return OK;
-	}else{
-		return FAIL;
 	}
+#endif
+	return FAIL;
 }
 
 //----------------------------------------------------------------------------
 status AutoFox_INA226::WriteRegister(uint8_t aRegister, uint16_t aValue)
 {
 	int theBytesWriten = 0;
+#if defined(__AVR__)
 	Wire.beginTransmission(mI2C_Address);
 	theBytesWriten += Wire.write(aRegister);
 	theBytesWriten += Wire.write((aValue >> 8) & 0xFF);
 	theBytesWriten += Wire.write(aValue & 0xFF);      
 	Wire.endTransmission();
-
+#endif
 	return (theBytesWriten==3) ? OK : FAIL;
 }
 //----------------------------------------------------------------------------
@@ -278,7 +282,8 @@ status  AutoFox_INA226::ConfigureAlertPinTrigger(enum eAlertTrigger aAlertTrigge
 		break;
 	case eAlertTrigger::ShuntVoltageOverLimit:
 	case eAlertTrigger::ShuntVoltageUnderLimit:
-		theAlertValue = ((double)aValue / INA226_HardCodedChipConst::INA226_SHUNT_VOLTAGE_LSB);
+		//theAlertValue = ((double)aValue / ((double)(INA226_HardCodedChipConst::INA226_SHUNT_VOLTAGE_LSB)/1000.0));
+		theAlertValue = (aValue<<1)/5; //same as aValue/2.5
 		break;
 	case eAlertTrigger::BusVoltageOverLimit:
 	case eAlertTrigger::BusVoltageUnderLimit:

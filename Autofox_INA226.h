@@ -135,8 +135,10 @@ protected:
     static const int      cShuntVoltConvTimeIdxShift   = 3;
     static const int      cMaxSampleAvgTblIdx          = 7;    //occupies 3 bit positions
     static const int      cMaxConvTimeTblIdx           = 7; //occupies 3 bit positions
-    static const uint16_t caNumSamplesAveraged[8]      = {1, 4, 16, 64, 128, 256, 512, 1024};
-    static const uint16_t caVoltageConvTimeMicroSecs[8] = {140, 204, 332, 588, 1100, 2116, 4156, 8244}; //microseconds
+
+    //You will never use these values directly, these tables represent tables stored in the INA226
+    //static const int caNumSamplesAveraged[8]      = {1, 4, 16, 64, 128, 256, 512, 1024};
+    //static const int caVoltageConvTimeMicroSecs[8] = {140, 204, 332, 588, 1100, 2116, 4156, 8244}; //microseconds
 
 };
 //=============================================================================
@@ -158,7 +160,7 @@ public:
 class INA226_HardCodedChipConst{
 public:
     static const int32_t    INA226_BUS_VOLTAGE_LSB     = 1250; //1250uV per bit
-    static const double     INA226_SHUNT_VOLTAGE_LSB   = 2.5;    //2.5uV per bit
+    static const int32_t    INA226_SHUNT_VOLTAGE_LSB   = 2500;    //2500 nano volts per bit (=2.5uV)
     static const int32_t    INA226_POWER_LSB_FACTOR    = 25;
     static const uint16_t   INA226_MANUFACTURER_ID     = 0x5449;
     static const uint16_t   INA226_DIE_ID              = 0x2260;
@@ -171,4 +173,4 @@ public:
     static const uint16_t   INA226_CONFIG_DEFAULT       = 0x4527; // Our default config reg settings
 };
 
-#endif __AUTOFOX_INA226_H__
+#endif //__AUTOFOX_INA226_H__
