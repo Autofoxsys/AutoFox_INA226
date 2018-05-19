@@ -31,8 +31,10 @@ Embodied in 3 functions related to I2C reading/writing
 */
 
 #include "Autofox_INA226.h"
-//#include <Wire.h>
 #include <math.h>
+#if defined(__AVR__)
+#include <Wire.h>
+#endif
 
 
 //=============================================================================
