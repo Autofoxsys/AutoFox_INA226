@@ -12,4 +12,4 @@ About the INA226:
 
 There are a number of low cost breakout boards for the INA226 (similar to the INA219) available from sites such as Aliexpress.  None of the libraries that I found were complete enough for my needs so I wrote this one.
 
-I'll write up a more complete readme and tutorial when I get the time.  For a simple circuit setup check out the Wiki page.
+Please consult the Wiki page on GitHub for explanations and examples.
