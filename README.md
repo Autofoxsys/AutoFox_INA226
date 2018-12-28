@@ -1,7 +1,7 @@
 # AutoFox_INA226
 This repository contains both C and C++ files for using the INA226 voltage, current and power measurement chip from Texas Instruments.
 
-The only platform specific parts of this library related to I2C communications, which uses different APIs depending on what chip/platform you're using.
+The only platform specific parts of this library are related to I2C communications.  On Arduino I use Wire for I2C comms with the INA226 while for STM32, which I build using CubeMX and TrueStudio I use the HAL I2C drivers.  If you want to use some other library for I2C on your platform then it should be relatively easy.
 
 I started by developing a C++ library for Arduino.
 When I wanted to re-use this library on an STM32 using ST's CubeMX development tools I found that I needed to convert it to C only (there's a C++ workaround but it didn't suit me).
