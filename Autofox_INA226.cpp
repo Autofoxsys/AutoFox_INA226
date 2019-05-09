@@ -1,6 +1,6 @@
 /*
 Library to facilitate use of the INA226 Voltage, Current & Power monitor
-from Texas Intruments.
+from Texas Instruments.
 See spec. here: http://www.ti.com/lit/ds/symlink/ina226.pdf.
 
 Copyright [2018] [AutoFox] autofoxsys@gmail.com
@@ -169,7 +169,7 @@ status AutoFox_INA226::WriteRegister(uint8_t aRegister, uint16_t aValue)
 int32_t AutoFox_INA226::GetShuntVoltage_uV()
 {
 	//The value retrieved from the INA226 for the shunt voltage
-	//needs to be multipled by 2.5 to yield the value in microvolts.
+	//needs to be multiplied by 2.5 to yield the value in microvolts.
 	//As I don't want to use floating point multiplication I will take the value
 	//divide it by 2 (shift right) and add that to 2 times the original value
 	//(shift left).
@@ -279,7 +279,7 @@ status  AutoFox_INA226::ConfigureAlertPinTrigger(enum eAlertTrigger aAlertTrigge
 		break;
 	case eAlertTrigger::ClearTriggers:
 	case eAlertTrigger::ConversionReady:
-		//not a voltage or a power, so we don't care about the tigger value
+		//not a voltage or a power, so we don't care about the trigger value
 		theAlertValue = 0;
 		break;
 	case eAlertTrigger::ShuntVoltageOverLimit:
@@ -298,7 +298,7 @@ status  AutoFox_INA226::ConfigureAlertPinTrigger(enum eAlertTrigger aAlertTrigge
 
 	//before we set the new config for the alert pin, set the value that will trigger the alert
 	CALL_FN( WriteRegister(INA226_Registers::INA226_ALERT_LIMIT, (int16_t)theAlertValue) );
-	//Now set the tigger mode.
+	//Now set the trigger mode.
 	return WriteRegister(INA226_Registers::INA226_MASK_ENABLE, theMaskEnableRegister);
 }
 //----------------------------------------------------------------------------
