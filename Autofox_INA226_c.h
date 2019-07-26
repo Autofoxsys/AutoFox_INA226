@@ -1,6 +1,6 @@
 /*
    Library to facilitate use of the INA226 Voltage, Current & Power monitor
-   from Texas Intruments.
+   from Texas Instruments.
    See spec. here: http://www.ti.com/lit/ds/symlink/ina226.pdf.
 
    Copyright [2018] [AutoFox] autofoxsys@gmail.com
@@ -125,7 +125,7 @@ status AutoFox_INA226_ConfigureAlertPinTrigger(AutoFox_INA226*,enum eAlertTrigge
 //status AutoFox_INA226_ResetAlertPin(AutoFox_INA226*);
 status AutoFox_INA226_ResetAlertPin(AutoFox_INA226*,enum  eAlertTriggerCause* aAlertTriggerCause_p ); //provides feedback as to what caused the alert
 
-//The parameters for the two functions below are indicies into the tables defined in the INA226 spec
+//The parameters for the two functions below are indices into the tables defined in the INA226 spec
 //These tables are copied below for your information (caNumSamplesAveraged & caVoltageConvTimeMicroSecs)
 status AutoFox_INA226_ConfigureVoltageConversionTime(AutoFox_INA226*,int aIndexToConversionTimeTable);
 status AutoFox_INA226_ConfigureNumSampleAveraging(AutoFox_INA226*,int aIndexToSampleAverageTable);

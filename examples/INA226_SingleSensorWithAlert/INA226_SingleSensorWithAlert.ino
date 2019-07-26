@@ -47,7 +47,7 @@ void setup() {
     Serial.println(theErrorCode);   
   }
   // Here we configure the sensor to generate an alert if the bus voltage drops
-  // below the speficied value in microvolts.
+  // below the specified value in microvolts.
 
   ina226.ConfigureAlertPinTrigger(AutoFox_INA226::eAlertTrigger::BusVoltageUnderLimit, LOW_VOLTAGE_VALUE_ALERT);  
 }
