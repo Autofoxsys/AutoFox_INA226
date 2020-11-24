@@ -103,7 +103,8 @@ void AutoFox_INA226_Constructor(AutoFox_INA226* this)
 status AutoFox_INA226_Init(AutoFox_INA226* this, uint8_t aI2C_Address, double aShuntResistor_Ohms, double aMaxCurrent_Amps)
 {
 	this->mInitialized = false;
-
+	this->mI2C_Address = aI2C_Address;
+	
 	//Check if there's a device (any I2C device) at the specified address.
 	CALL_FN( AutoFox_INA226_CheckI2cAddress(aI2C_Address) );
 
@@ -118,7 +119,7 @@ status AutoFox_INA226_Init(AutoFox_INA226* this, uint8_t aI2C_Address, double aS
 		return  INA226_DIE_ID_MISMATCH; //Expected to find INA226 device ID
 	}
 
-	this->mI2C_Address = aI2C_Address;
+	
 
 	//Reset the INA226 device
 	CALL_FN( AutoFox_INA226_WriteRegister(this,INA226_CONFIG, cResetCommand) );
