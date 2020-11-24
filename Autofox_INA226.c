@@ -31,6 +31,7 @@ Embodied in 3 functions related to I2C reading/writing
 */
 
 #include "Autofox_INA226_c.h"
+#include "INA226_callback.h"
 #include <math.h>
 #if defined(__AVR__)
 #include <Wire.h>
@@ -71,7 +72,6 @@ static const uint16_t   INA226_DIE_ID_K            = 0x2260;
 
 //=============================================================================
 
-static const uint8_t    INA226_DEFAULT_I2C_ADDRESS  = 0x40;
 static const uint16_t   INA226_CONFIG_DEFAULT       = 0x4527; // Our default config reg settings
 //=============================================================================
 const uint16_t cResetCommand                = 0x8000;
@@ -176,7 +176,7 @@ status AutoFox_INA226_CheckI2cAddress(AutoFox_INA226* this, uint8_t aI2C_Address
 		return OK;
 	}
 #elif defined(USE_HAL_DRIVER)
-	if(HAL_I2C_IsDeviceReady(this->hi2c, (uint16_t)aI2C_Address<<1, 10, INA226_I2C_TIMEOUT) != HAL_OK){
+	if(Check_device(this, (uint16_t)aI2C_Address, 10) != HAL_OK){
 		return INVALID_I2C_ADDRESS;
 	}else{
 		return OK;
@@ -202,13 +202,11 @@ status AutoFox_INA226_ReadRegister(AutoFox_INA226* this, uint8_t aRegister, uint
 	}
 #elif defined(USE_HAL_DRIVER)
 	uint8_t buffer[2];
-	if (HAL_I2C_Master_Transmit(this->hi2c,
-			(uint16_t) this->mI2C_Address<<1, &aRegister, 1, INA226_I2C_TIMEOUT)
+	if (Transmit(this, &aRegister, 1)
 			!= HAL_OK) {
 		return FAIL;
 	}
-	if (HAL_I2C_Master_Receive(this->hi2c, (uint16_t) this->mI2C_Address<<1,
-			buffer, 2, INA226_I2C_TIMEOUT) != HAL_OK) {
+	if (Receive(this, buffer, 2) != HAL_OK) {
 		return FAIL;
 	}
 	*aValue_p = buffer[0];
@@ -234,8 +232,7 @@ status AutoFox_INA226_WriteRegister(AutoFox_INA226* this, uint8_t aRegister, uin
 	buffer[0] = aRegister;
 	buffer[1] = (uint8_t) ((aValue >> 8) & 0xFF);
 	buffer[2] = (uint8_t) (aValue & 0xFF);
-	if (HAL_I2C_Master_Transmit(this->hi2c,
-			(uint16_t) this->mI2C_Address<<1, buffer, 3, INA226_I2C_TIMEOUT)
+	if (Transmit(this, buffer, 3)
 			!= HAL_OK) {
 		return FAIL;
 	}
