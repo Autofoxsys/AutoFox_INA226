@@ -36,7 +36,7 @@ Embodied in 3 functions related to I2C reading/writing
 #if defined(__AVR__)
 #include <Wire.h>
 #elif defined(USE_HAL_DRIVER)
-#include "stm32f3xx_hal.h"
+//#include "stm32f3xx_hal.h"
 #endif
 
 
@@ -89,7 +89,7 @@ const int      cMaxSampleAvgTblIdx          = 7;    //occupies 3 bit positions
 const int      cMaxConvTimeTblIdx           = 7; //occupies 3 bit positions
 //=============================================================================
 
-void AutoFox_INA226_Constructor(AutoFox_INA226* this, I2C_HandleTypeDef* i2c_device, uint8_t aI2C_Address)
+void AutoFox_INA226_Constructor(AutoFox_INA226* this, void* i2c_device, uint8_t aI2C_Address)
 {
 	this->mInitialized = false;
 	this->hi2c = i2c_device;
@@ -101,7 +101,7 @@ void AutoFox_INA226_Constructor(AutoFox_INA226* this, I2C_HandleTypeDef* i2c_dev
 }
 
 //----------------------------------------------------------------------------
-status AutoFox_INA226_Init(AutoFox_INA226* this, I2C_HandleTypeDef* i2c_device, uint8_t aI2C_Address, double aShuntResistor_Ohms, double aMaxCurrent_Amps)
+status AutoFox_INA226_Init(AutoFox_INA226* this, void* i2c_device, uint8_t aI2C_Address, double aShuntResistor_Ohms, double aMaxCurrent_Amps)
 {
 	AutoFox_INA226_Constructor(this, i2c_device, aI2C_Address);
 
@@ -176,7 +176,7 @@ status AutoFox_INA226_CheckI2cAddress(AutoFox_INA226* this, uint8_t aI2C_Address
 		return OK;
 	}
 #elif defined(USE_HAL_DRIVER)
-	if(Check_device(this, (uint16_t)aI2C_Address, 10) != HAL_OK){
+	if(Check_device(this, (uint16_t)aI2C_Address, 10) != 0){ //Return 0 is OK
 		return INVALID_I2C_ADDRESS;
 	}else{
 		return OK;
@@ -203,10 +203,10 @@ status AutoFox_INA226_ReadRegister(AutoFox_INA226* this, uint8_t aRegister, uint
 #elif defined(USE_HAL_DRIVER)
 	uint8_t buffer[2];
 	if (Transmit(this, &aRegister, 1)
-			!= HAL_OK) {
+			!= 0) {							//Return 0 is OK
 		return FAIL;
 	}
-	if (Receive(this, buffer, 2) != HAL_OK) {
+	if (Receive(this, buffer, 2) != 0) {	//Return 0 is OK
 		return FAIL;
 	}
 	*aValue_p = buffer[0];
@@ -233,7 +233,7 @@ status AutoFox_INA226_WriteRegister(AutoFox_INA226* this, uint8_t aRegister, uin
 	buffer[1] = (uint8_t) ((aValue >> 8) & 0xFF);
 	buffer[2] = (uint8_t) (aValue & 0xFF);
 	if (Transmit(this, buffer, 3)
-			!= HAL_OK) {
+			!= 0) {				//Return 0 is OK
 		return FAIL;
 	}
 	return OK;
