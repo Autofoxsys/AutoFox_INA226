@@ -35,7 +35,7 @@ Embodied in 3 functions related to I2C reading/writing
 #if defined(__AVR__)
 #include <Wire.h>
 #elif defined(USE_HAL_DRIVER)
-#include "stm32f1xx_hal.h"
+#include "stm32f3xx_hal.h"
 #endif
 
 
@@ -89,10 +89,11 @@ const int      cMaxSampleAvgTblIdx          = 7;    //occupies 3 bit positions
 const int      cMaxConvTimeTblIdx           = 7; //occupies 3 bit positions
 //=============================================================================
 
-void AutoFox_INA226_Constructor(AutoFox_INA226* this)
+void AutoFox_INA226_Constructor(AutoFox_INA226* this, I2C_HandleTypeDef* i2c_device, uint8_t aI2C_Address)
 {
 	this->mInitialized = false;
-	this->mI2C_Address = INA226_DEFAULT_I2C_ADDRESS;
+	this->hi2c = i2c_device;
+	this->mI2C_Address = aI2C_Address;
 	this->mConfigRegister = 0;
 	this->mCalibrationValue = 0;
 	this->mCurrentMicroAmpsPerBit = 0;
@@ -100,13 +101,12 @@ void AutoFox_INA226_Constructor(AutoFox_INA226* this)
 }
 
 //----------------------------------------------------------------------------
-status AutoFox_INA226_Init(AutoFox_INA226* this, uint8_t aI2C_Address, double aShuntResistor_Ohms, double aMaxCurrent_Amps)
+status AutoFox_INA226_Init(AutoFox_INA226* this, I2C_HandleTypeDef* i2c_device, uint8_t aI2C_Address, double aShuntResistor_Ohms, double aMaxCurrent_Amps)
 {
-	this->mInitialized = false;
-	this->mI2C_Address = aI2C_Address;
-	
+	AutoFox_INA226_Constructor(this, i2c_device, aI2C_Address);
+
 	//Check if there's a device (any I2C device) at the specified address.
-	CALL_FN( AutoFox_INA226_CheckI2cAddress(aI2C_Address) );
+	CALL_FN( AutoFox_INA226_CheckI2cAddress(this, aI2C_Address) );
 
 	//Good so far, check that it's an INA226 device at the specified address.
 	uint16_t theINA226_ID;
@@ -166,7 +166,7 @@ status AutoFox_INA226_setupCalibration(AutoFox_INA226* this, double aShuntResist
 //----------------------------------------------------------------------------
 //Check if a device exists at the specified I2C address
 
-status AutoFox_INA226_CheckI2cAddress(uint8_t aI2C_Address)
+status AutoFox_INA226_CheckI2cAddress(AutoFox_INA226* this, uint8_t aI2C_Address)
 {
 #if defined(__AVR__)
 	Wire.begin();
@@ -176,7 +176,7 @@ status AutoFox_INA226_CheckI2cAddress(uint8_t aI2C_Address)
 		return OK;
 	}
 #elif defined(USE_HAL_DRIVER)
-	if(HAL_I2C_IsDeviceReady(&I2C_HANDLE_IN226, (uint16_t)aI2C_Address<<1, 10, INA226_I2C_TIMEOUT) != HAL_OK){
+	if(HAL_I2C_IsDeviceReady(this->hi2c, (uint16_t)aI2C_Address<<1, 10, INA226_I2C_TIMEOUT) != HAL_OK){
 		return INVALID_I2C_ADDRESS;
 	}else{
 		return OK;
@@ -202,12 +202,12 @@ status AutoFox_INA226_ReadRegister(AutoFox_INA226* this, uint8_t aRegister, uint
 	}
 #elif defined(USE_HAL_DRIVER)
 	uint8_t buffer[2];
-	if (HAL_I2C_Master_Transmit(&I2C_HANDLE_IN226,
+	if (HAL_I2C_Master_Transmit(this->hi2c,
 			(uint16_t) this->mI2C_Address<<1, &aRegister, 1, INA226_I2C_TIMEOUT)
 			!= HAL_OK) {
 		return FAIL;
 	}
-	if (HAL_I2C_Master_Receive(&I2C_HANDLE_IN226, (uint16_t) this->mI2C_Address<<1,
+	if (HAL_I2C_Master_Receive(this->hi2c, (uint16_t) this->mI2C_Address<<1,
 			buffer, 2, INA226_I2C_TIMEOUT) != HAL_OK) {
 		return FAIL;
 	}
@@ -234,7 +234,7 @@ status AutoFox_INA226_WriteRegister(AutoFox_INA226* this, uint8_t aRegister, uin
 	buffer[0] = aRegister;
 	buffer[1] = (uint8_t) ((aValue >> 8) & 0xFF);
 	buffer[2] = (uint8_t) (aValue & 0xFF);
-	if (HAL_I2C_Master_Transmit(&I2C_HANDLE_IN226,
+	if (HAL_I2C_Master_Transmit(this->hi2c,
 			(uint16_t) this->mI2C_Address<<1, buffer, 3, INA226_I2C_TIMEOUT)
 			!= HAL_OK) {
 		return FAIL;
