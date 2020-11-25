@@ -35,11 +35,6 @@ Modified in 11.2020 by Norbert Gal for better portability, some bugs fixed.
 #include "INA226.h"
 #include "INA226_callback.h"
 #include <math.h>
-#if defined(__AVR__)
-#include <Wire.h>
-#elif defined(USE_HAL_DRIVER)
-//#include "stm32f3xx_hal.h"
-#endif
 
 
 
@@ -170,21 +165,11 @@ status INA226_setupCalibration(INA226* this, double aShuntResistor_Ohms, double 
 
 status INA226_CheckI2cAddress(INA226* this, uint8_t aI2C_Address)
 {
-#if defined(__AVR__)
-	Wire.begin();
-	//Check if there's a device (any I2C device) at the specified address.
-	Wire.beginTransmission(aI2C_Address);
-	if(Wire.endTransmission() == 0){
-		return OK;
-	}
-#elif defined(USE_HAL_DRIVER)
 	if(Check_device(this, (uint16_t)aI2C_Address, 10) != 0){ //Return 0 is OK
 		return INVALID_I2C_ADDRESS;
 	}else{
 		return OK;
 	}
-#endif
-	return INVALID_I2C_ADDRESS;
 }
 
 //----------------------------------------------------------------------------
@@ -193,16 +178,6 @@ status INA226_ReadRegister(INA226* this, uint8_t aRegister, uint16_t* aValue_p)
 {
 	*aValue_p = 0;
 
-#if defined(__AVR__)
-	Wire.beginTransmission(mI2C_Address);
-	Wire.write(aRegister);
-	Wire.endTransmission();
-	if( Wire.requestFrom((int)this->mI2C_Address, (int)2) == 2 ) {
-		*aValue_p = Wire.read();
-		*aValue_p = *aValue_p<<8 | Wire.read();
-		return OK;
-	}
-#elif defined(USE_HAL_DRIVER)
 	uint8_t buffer[2];
 	if (Transmit(this, &aRegister, 1)
 			!= 0) {							//Return 0 is OK
@@ -214,22 +189,11 @@ status INA226_ReadRegister(INA226* this, uint8_t aRegister, uint16_t* aValue_p)
 	*aValue_p = buffer[0];
 	*aValue_p = *aValue_p<<8 | buffer[1];
 	return OK;
-#endif
-	return FAIL;
 }
 
 //----------------------------------------------------------------------------
 status INA226_WriteRegister(INA226* this, uint8_t aRegister, uint16_t aValue)
 {
-#if defined(__AVR__)
-	int theBytesWriten = 0;
-	Wire.beginTransmission(this->mI2C_Address);
-	theBytesWriten += Wire.write(aRegister);
-	theBytesWriten += Wire.write((aValue >> 8) & 0xFF);
-	theBytesWriten += Wire.write(aValue & 0xFF);
-	Wire.endTransmission();
-	return (theBytesWriten==3) ? OK : FAIL;
-#elif defined(USE_HAL_DRIVER)
 	uint8_t buffer[3];
 	buffer[0] = aRegister;
 	buffer[1] = (uint8_t) ((aValue >> 8) & 0xFF);
@@ -239,8 +203,6 @@ status INA226_WriteRegister(INA226* this, uint8_t aRegister, uint16_t aValue)
 		return FAIL;
 	}
 	return OK;
-#endif
-	return FAIL;
 }
 //----------------------------------------------------------------------------
 int32_t INA226_GetShuntVoltage_uV(INA226* this)
