@@ -100,6 +100,24 @@ enum eAlertTriggerCause{
                     AlertPolarityBit             = 0x02};
 //=============================================================================
 
+//	Address of INA226 I2C for more info see the INA226 datasheet
+#define INA226_ADRESS_0		0b01000000
+#define INA226_ADRESS_1		0b01000001
+#define INA226_ADRESS_2		0b01000010
+#define INA226_ADRESS_3		0b01000011
+#define INA226_ADRESS_4		0b01000100
+#define INA226_ADRESS_5		0b01000101
+#define INA226_ADRESS_6		0b01000110
+#define INA226_ADRESS_7		0b01000111
+#define INA226_ADRESS_8		0b01001000
+#define INA226_ADRESS_9		0b01001001
+#define INA226_ADRESS_10	0b01001010
+#define INA226_ADRESS_11	0b01001011
+#define INA226_ADRESS_12	0b01001100
+#define INA226_ADRESS_13	0b01001101
+#define INA226_ADRESS_14	0b01001110
+#define INA226_ADRESS_15	0b01001111
+//=============================================================================
 
 void INA226_Constructor(INA226* this, void* i2c_device, uint8_t aI2C_Address);
 status INA226_CheckI2cAddress(INA226* this, uint8_t aI2C_Address);
