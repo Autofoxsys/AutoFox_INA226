@@ -17,7 +17,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 
-This library is for Arduino.
+This library is for STM32 using HAL provided by CubeMX
 
 In developing this library, besides reading the INA226 spec, I consulted
 the following code:
@@ -28,9 +28,11 @@ the following code:
 PLATFORM DEPENDENCE
 Embodied in 3 functions related to I2C reading/writing
 
+Modified in 11.2020 by Norbert Gal for better portability, some bugs fixed.
+
 */
 
-#include "Autofox_INA226_c.h"
+#include "INA226.h"
 #include "INA226_callback.h"
 #include <math.h>
 #if defined(__AVR__)
@@ -89,7 +91,7 @@ const int      cMaxSampleAvgTblIdx          = 7;    //occupies 3 bit positions
 const int      cMaxConvTimeTblIdx           = 7; //occupies 3 bit positions
 //=============================================================================
 
-void AutoFox_INA226_Constructor(AutoFox_INA226* this, void* i2c_device, uint8_t aI2C_Address)
+void INA226_Constructor(INA226* this, void* i2c_device, uint8_t aI2C_Address)
 {
 	this->mInitialized = false;
 	this->hi2c = i2c_device;
@@ -101,20 +103,20 @@ void AutoFox_INA226_Constructor(AutoFox_INA226* this, void* i2c_device, uint8_t 
 }
 
 //----------------------------------------------------------------------------
-status AutoFox_INA226_Init(AutoFox_INA226* this, void* i2c_device, uint8_t aI2C_Address, double aShuntResistor_Ohms, double aMaxCurrent_Amps)
+status INA226_Init(INA226* this, void* i2c_device, uint8_t aI2C_Address, double aShuntResistor_Ohms, double aMaxCurrent_Amps)
 {
-	AutoFox_INA226_Constructor(this, i2c_device, aI2C_Address);
+	INA226_Constructor(this, i2c_device, aI2C_Address);
 
 	//Check if there's a device (any I2C device) at the specified address.
-	CALL_FN( AutoFox_INA226_CheckI2cAddress(this, aI2C_Address) );
+	CALL_FN( INA226_CheckI2cAddress(this, aI2C_Address) );
 
 	//Good so far, check that it's an INA226 device at the specified address.
 	uint16_t theINA226_ID;
-	CALL_FN( AutoFox_INA226_ReadRegister(this,INA226_MANUFACTURER_ID, &theINA226_ID) );
+	CALL_FN( INA226_ReadRegister(this,INA226_MANUFACTURER_ID, &theINA226_ID) );
 	if(theINA226_ID != INA226_MANUFACTURER_ID_K){
 		return INA226_TI_ID_MISMATCH; //Expected to find TI manufacturer ID
 	}
-	CALL_FN( AutoFox_INA226_ReadRegister(this,INA226_DIE_ID, &theINA226_ID) );
+	CALL_FN( INA226_ReadRegister(this,INA226_DIE_ID, &theINA226_ID) );
 	if( theINA226_ID != INA226_DIE_ID_K){
 		return  INA226_DIE_ID_MISMATCH; //Expected to find INA226 device ID
 	}
@@ -122,13 +124,13 @@ status AutoFox_INA226_Init(AutoFox_INA226* this, void* i2c_device, uint8_t aI2C_
 	
 
 	//Reset the INA226 device
-	CALL_FN( AutoFox_INA226_WriteRegister(this,INA226_CONFIG, cResetCommand) );
+	CALL_FN( INA226_WriteRegister(this,INA226_CONFIG, cResetCommand) );
 
 	//Now set our own default configuration (you can redefine this constant in the header, as needed)
-	CALL_FN( AutoFox_INA226_WriteRegister(this,INA226_CONFIG, INA226_CONFIG_DEFAULT) );
+	CALL_FN( INA226_WriteRegister(this,INA226_CONFIG, INA226_CONFIG_DEFAULT) );
 
 	//Read back the configuration register and check that it matches
-	CALL_FN( AutoFox_INA226_ReadRegister(this,INA226_CONFIG, &(this->mConfigRegister)) );
+	CALL_FN( INA226_ReadRegister(this,INA226_CONFIG, &(this->mConfigRegister)) );
 	if(this->mConfigRegister != INA226_CONFIG_DEFAULT){
 		return CONFIG_ERROR;
 	}
@@ -136,14 +138,14 @@ status AutoFox_INA226_Init(AutoFox_INA226* this, void* i2c_device, uint8_t aI2C_
 	//Finally, set up the calibration register - this will also calculate the scaling
 	//factors that we must apply to the current and power measurements that we read from
 	//the INA226 device.
-	CALL_FN( AutoFox_INA226_setupCalibration(this, aShuntResistor_Ohms, aMaxCurrent_Amps) );
+	CALL_FN( INA226_setupCalibration(this, aShuntResistor_Ohms, aMaxCurrent_Amps) );
 
 	this->mInitialized = true;
 	return OK;
 }
 //----------------------------------------------------------------------------
 
-status AutoFox_INA226_setupCalibration(AutoFox_INA226* this, double aShuntResistor_Ohms, double aMaxCurrent_Amps)
+status INA226_setupCalibration(INA226* this, double aShuntResistor_Ohms, double aMaxCurrent_Amps)
 {
 	// Calculate a value for Current_LSB that gives us the best resolution
 	// for current measurements.  The INA266 current register is 16-bit
@@ -161,12 +163,12 @@ status AutoFox_INA226_setupCalibration(AutoFox_INA226* this, double aShuntResist
 	this->mCalibrationValue = (uint16_t)theCal;
 	this->mPowerMicroWattPerBit = this->mCurrentMicroAmpsPerBit * INA226_POWER_LSB_FACTOR;
 
-	return AutoFox_INA226_WriteRegister(this,INA226_CALIBRATION, this->mCalibrationValue);
+	return INA226_WriteRegister(this,INA226_CALIBRATION, this->mCalibrationValue);
 }
 //----------------------------------------------------------------------------
 //Check if a device exists at the specified I2C address
 
-status AutoFox_INA226_CheckI2cAddress(AutoFox_INA226* this, uint8_t aI2C_Address)
+status INA226_CheckI2cAddress(INA226* this, uint8_t aI2C_Address)
 {
 #if defined(__AVR__)
 	Wire.begin();
@@ -187,7 +189,7 @@ status AutoFox_INA226_CheckI2cAddress(AutoFox_INA226* this, uint8_t aI2C_Address
 
 //----------------------------------------------------------------------------
 
-status AutoFox_INA226_ReadRegister(AutoFox_INA226* this, uint8_t aRegister, uint16_t* aValue_p)
+status INA226_ReadRegister(INA226* this, uint8_t aRegister, uint16_t* aValue_p)
 {
 	*aValue_p = 0;
 
@@ -217,7 +219,7 @@ status AutoFox_INA226_ReadRegister(AutoFox_INA226* this, uint8_t aRegister, uint
 }
 
 //----------------------------------------------------------------------------
-status AutoFox_INA226_WriteRegister(AutoFox_INA226* this, uint8_t aRegister, uint16_t aValue)
+status INA226_WriteRegister(INA226* this, uint8_t aRegister, uint16_t aValue)
 {
 #if defined(__AVR__)
 	int theBytesWriten = 0;
@@ -241,7 +243,7 @@ status AutoFox_INA226_WriteRegister(AutoFox_INA226* this, uint8_t aRegister, uin
 	return FAIL;
 }
 //----------------------------------------------------------------------------
-int32_t AutoFox_INA226_GetShuntVoltage_uV(AutoFox_INA226* this)
+int32_t INA226_GetShuntVoltage_uV(INA226* this)
 {
 	//The value retrieved from the INA226 for the shunt voltage
 	//needs to be multiplied by 2.5 to yield the value in microvolts.
@@ -250,50 +252,50 @@ int32_t AutoFox_INA226_GetShuntVoltage_uV(AutoFox_INA226* this)
 	//(shift left).
 	int16_t theRegisterValue=0;
 	int32_t theResult;
-	AutoFox_INA226_ReadRegister(this,INA226_SHUNT_VOLTAGE, (uint16_t*)&theRegisterValue);
+	INA226_ReadRegister(this,INA226_SHUNT_VOLTAGE, (uint16_t*)&theRegisterValue);
 	theResult = (int32_t)theRegisterValue>>1;
 	theResult+= (int32_t)theRegisterValue<<1;
 	return theResult;
 }
 //----------------------------------------------------------------------------
-int32_t AutoFox_INA226_GetBusVoltage_uV(AutoFox_INA226* this)
+int32_t INA226_GetBusVoltage_uV(INA226* this)
 {
 	uint16_t theRegisterValue=0;
-	AutoFox_INA226_ReadRegister(this,INA226_BUS_VOLTAGE, &theRegisterValue);
+	INA226_ReadRegister(this,INA226_BUS_VOLTAGE, &theRegisterValue);
 	return (int32_t)theRegisterValue * INA226_BUS_VOLTAGE_LSB;
 }
 
 //----------------------------------------------------------------------------
-int32_t AutoFox_INA226_GetCurrent_uA(AutoFox_INA226* this)
+int32_t INA226_GetCurrent_uA(INA226* this)
 {
 	int16_t theRegisterValue=0; // signed register, result in mA
-	AutoFox_INA226_ReadRegister(this,INA226_CURRENT, (uint16_t*)&theRegisterValue);
+	INA226_ReadRegister(this,INA226_CURRENT, (uint16_t*)&theRegisterValue);
 	return (int32_t)theRegisterValue * this->mCurrentMicroAmpsPerBit;
 }
 //----------------------------------------------------------------------------
-int32_t AutoFox_INA226_GetPower_uW(AutoFox_INA226* this)
+int32_t INA226_GetPower_uW(INA226* this)
 {
 	uint16_t theRegisterValue=0;
 	int32_t theReturnValue;
-	AutoFox_INA226_ReadRegister(this,INA226_POWER, &theRegisterValue);
+	INA226_ReadRegister(this,INA226_POWER, &theRegisterValue);
 	theReturnValue = (int32_t)theRegisterValue * this->mPowerMicroWattPerBit;
 	return theReturnValue;
 }
 //----------------------------------------------------------------------------
-status AutoFox_INA226_Hibernate(AutoFox_INA226* this)
+status INA226_Hibernate(INA226* this)
 {
 	CHECK_INITIALIZED();
 	//Make a most recent copy of the configuration register, which also contains
 	//The operating mode (we need a copy of this for when we come out of sleep)
-	CALL_FN( AutoFox_INA226_ReadRegister(this,INA226_CONFIG, &(this->mConfigRegister)) );
+	CALL_FN( INA226_ReadRegister(this,INA226_CONFIG, &(this->mConfigRegister)) );
 
 	//Zero out the operating more, this will put the INA226 into shutdown
 	uint16_t theTempConfigValue = this->mConfigRegister & ~(cOperatingModeMask);
 
-	return AutoFox_INA226_WriteRegister(this,INA226_CONFIG, theTempConfigValue);
+	return INA226_WriteRegister(this,INA226_CONFIG, theTempConfigValue);
 }
 //----------------------------------------------------------------------------
-status AutoFox_INA226_Wakeup(AutoFox_INA226* this)
+status INA226_Wakeup(INA226* this)
 {
 	CHECK_INITIALIZED();
 	//Write most recent copy of the calibration register - which should restore
@@ -307,27 +309,27 @@ status AutoFox_INA226_Wakeup(AutoFox_INA226* this)
 			this->mConfigRegister |= ShuntAndBusVoltageContinuous;
 	}
 
-	return AutoFox_INA226_WriteRegister(this,INA226_CONFIG, this->mConfigRegister);
+	return INA226_WriteRegister(this,INA226_CONFIG, this->mConfigRegister);
 }
 //----------------------------------------------------------------------------
-status AutoFox_INA226_SetOperatingMode(AutoFox_INA226* this, enum eOperatingMode aOpMode)
+status INA226_SetOperatingMode(INA226* this, enum eOperatingMode aOpMode)
 {
 	CHECK_INITIALIZED();
-	CALL_FN( AutoFox_INA226_ReadRegister(this,INA226_CONFIG, &(this->mConfigRegister)) );
+	CALL_FN( INA226_ReadRegister(this,INA226_CONFIG, &(this->mConfigRegister)) );
 
 	//Zero out the existing mode then OR in the new mode
 	this->mConfigRegister  &= ~(cOperatingModeMask);
 	this->mConfigRegister  |= (uint16_t)aOpMode;
 
-	return AutoFox_INA226_WriteRegister(this,INA226_CONFIG, this->mConfigRegister);
+	return INA226_WriteRegister(this,INA226_CONFIG, this->mConfigRegister);
 }
 //----------------------------------------------------------------------------
-status  AutoFox_INA226_ConfigureAlertPinTrigger(AutoFox_INA226* this, enum eAlertTrigger aAlertTrigger, int32_t aValue, bool aLatching)
+status  INA226_ConfigureAlertPinTrigger(INA226* this, enum eAlertTrigger aAlertTrigger, int32_t aValue, bool aLatching)
 {
 	uint16_t theMaskEnableRegister;
 
 	CHECK_INITIALIZED();
-	CALL_FN( AutoFox_INA226_ReadRegister(this,INA226_MASK_ENABLE, &theMaskEnableRegister) );
+	CALL_FN( INA226_ReadRegister(this,INA226_MASK_ENABLE, &theMaskEnableRegister) );
 
 	//Clear the current configuration for the alert pin
 	theMaskEnableRegister &= ~ cAlertPinModeMask;
@@ -372,20 +374,20 @@ status  AutoFox_INA226_ConfigureAlertPinTrigger(AutoFox_INA226* this, enum eAler
 
 
 	//before we set the new config for the alert pin, set the value that will trigger the alert
-	CALL_FN( AutoFox_INA226_WriteRegister(this,INA226_ALERT_LIMIT, (int16_t)theAlertValue) );
+	CALL_FN( INA226_WriteRegister(this,INA226_ALERT_LIMIT, (int16_t)theAlertValue) );
 	//Now set the trigger mode.
-	return AutoFox_INA226_WriteRegister(this,INA226_MASK_ENABLE, theMaskEnableRegister);
+	return INA226_WriteRegister(this,INA226_MASK_ENABLE, theMaskEnableRegister);
 }
 //----------------------------------------------------------------------------
-//status AutoFox_INA226_ResetAlertPin(AutoFox_INA226* this)
+//status INA226_ResetAlertPin(INA226* this)
 //{
 //	CHECK_INITIALIZED();
 //	uint16_t theDummyValue;
 //	//Reading the Mask/Enable register will reset the alert pin
-//	return AutoFox_INA226_ReadRegister(this,INA226_MASK_ENABLE, theDummyValue);
+//	return INA226_ReadRegister(this,INA226_MASK_ENABLE, theDummyValue);
 //}
 //----------------------------------------------------------------------------
-status AutoFox_INA226_ResetAlertPin(AutoFox_INA226* this, enum  eAlertTriggerCause* aAlertTriggerCause_p )
+status INA226_ResetAlertPin(INA226* this, enum  eAlertTriggerCause* aAlertTriggerCause_p )
 {
 	//preset the return parameter in case the function fails
 	*aAlertTriggerCause_p = Unknown;
@@ -394,7 +396,7 @@ status AutoFox_INA226_ResetAlertPin(AutoFox_INA226* this, enum  eAlertTriggerCau
 	uint16_t theTriggerCause;
 	//Reading the Mask/Enable register will reset the alert pin and provide us with the
 	//cause of the alert
-	CALL_FN( AutoFox_INA226_ReadRegister(this,INA226_MASK_ENABLE, &theTriggerCause) );
+	CALL_FN( INA226_ReadRegister(this,INA226_MASK_ENABLE, &theTriggerCause) );
 
 	//Mask just the bit that interests us (cause of the alert)
 	theTriggerCause &= cAlertCauseMask;
@@ -404,7 +406,7 @@ status AutoFox_INA226_ResetAlertPin(AutoFox_INA226* this, enum  eAlertTriggerCau
 	return OK;
 }
 //----------------------------------------------------------------------------
-status AutoFox_INA226_ConfigureVoltageConversionTime(AutoFox_INA226* this, int aIndexToConversionTimeTable)
+status INA226_ConfigureVoltageConversionTime(INA226* this, int aIndexToConversionTimeTable)
 {
 	CHECK_INITIALIZED();
 
@@ -413,7 +415,7 @@ status AutoFox_INA226_ConfigureVoltageConversionTime(AutoFox_INA226* this, int a
 	}
 
 	//Read the configuration register
-	CALL_FN( AutoFox_INA226_ReadRegister(this,INA226_CONFIG, &(this->mConfigRegister)) );
+	CALL_FN( INA226_ReadRegister(this,INA226_CONFIG, &(this->mConfigRegister)) );
 	//Clear the current voltage sampling time settings
 	this->mConfigRegister &= ~(cBusVoltageConvTimeMask | cShuntVoltageConvTimeMask);
 	//Set the new values
@@ -423,10 +425,10 @@ status AutoFox_INA226_ConfigureVoltageConversionTime(AutoFox_INA226* this, int a
 
 	this->mConfigRegister |= theMergedBusAndShuntConvTimeIndicies;
 
-	return AutoFox_INA226_WriteRegister(this,INA226_CONFIG, this->mConfigRegister);
+	return INA226_WriteRegister(this,INA226_CONFIG, this->mConfigRegister);
 }
 //----------------------------------------------------------------------------
-status AutoFox_INA226_ConfigureNumSampleAveraging(AutoFox_INA226* this, int aIndexToSampleAverageTable)
+status INA226_ConfigureNumSampleAveraging(INA226* this, int aIndexToSampleAverageTable)
 {
 	CHECK_INITIALIZED();
 
@@ -435,20 +437,20 @@ status AutoFox_INA226_ConfigureNumSampleAveraging(AutoFox_INA226* this, int aInd
 	}
 
 	//Read the configuration register
-	CALL_FN( AutoFox_INA226_ReadRegister(this,INA226_CONFIG, &(this->mConfigRegister)) );
+	CALL_FN( INA226_ReadRegister(this,INA226_CONFIG, &(this->mConfigRegister)) );
 	//Clear the current averaging value
 	this->mConfigRegister &= ~cSampleAvgMask;
 	//Set the new value
 	this->mConfigRegister |= (aIndexToSampleAverageTable<<cSampleAvgIdxShift);
 
-	return AutoFox_INA226_WriteRegister(this,INA226_CONFIG, this->mConfigRegister);
+	return INA226_WriteRegister(this,INA226_CONFIG, this->mConfigRegister);
 }
 //----------------------------------------------------------------------------
-status AutoFox_INA226_Debug_GetConfigRegister(AutoFox_INA226* this, uint16_t* aConfigReg_p)
+status INA226_Debug_GetConfigRegister(INA226* this, uint16_t* aConfigReg_p)
 {
 	CHECK_INITIALIZED();
 	//Read the configuration register
-	return AutoFox_INA226_ReadRegister(this,INA226_CONFIG, aConfigReg_p);
+	return INA226_ReadRegister(this,INA226_CONFIG, aConfigReg_p);
 }
 
 
