@@ -63,7 +63,7 @@ typedef enum {OK=0, FAIL=-1,
     NOT_INITIALIZED = -7,
     INVALID_I2C_ADDRESS} status;
 
-typedef struct INA226{
+typedef struct INA226_config{
 	void*				hi2c;
 	bool     			mInitialized;
     uint8_t  			mI2C_Address;
@@ -71,7 +71,19 @@ typedef struct INA226{
     uint16_t 			mCalibrationValue;        //local copy from the INA226
     int32_t  			mCurrentMicroAmpsPerBit; //This is the Current_LSB, as defined in the INA266 spec
     int32_t  			mPowerMicroWattPerBit;
-} INA226;
+} INA226_config;
+
+typedef struct INA226_result{
+    int32_t 			ShuntVoltage_uV;        //local copy from the INA226
+    int32_t 			BusVoltage_uV;        //local copy from the INA226
+    int32_t  			Current_uA; //This is the Current_LSB, as defined in the INA266 spec
+    int32_t  			Power_uW;
+} INA226_result;
+
+typedef struct INA226{
+	INA226_config	Config;
+	INA226_result	Result;
+}INA226;
 
 //=============================================================================
 
@@ -119,8 +131,8 @@ enum eAlertTriggerCause{
 #define INA226_ADRESS_15	0b01001111
 //=============================================================================
 
-void INA226_Constructor(INA226* this, void* i2c_device, uint8_t aI2C_Address);
-status INA226_CheckI2cAddress(INA226* this, uint8_t aI2C_Address);
+void INA226_Constructor(INA226_config* this, void* i2c_device, uint8_t aI2C_Address);
+status INA226_CheckI2cAddress(INA226_config* this, uint8_t aI2C_Address);
 
 //Resets the INA226 and configures it according to the supplied parameters - should be called first.
 //status INA226_Init(uint8_t aI2C_Address=0x40, double aShuntResistor_Ohms=0.1, double aMaxCurrent_Amps=3.2767);
@@ -130,27 +142,28 @@ int32_t INA226_GetShuntVoltage_uV(INA226*);
 int32_t INA226_GetBusVoltage_uV(INA226*);
 int32_t INA226_GetCurrent_uA(INA226*);
 int32_t INA226_GetPower_uW(INA226*);
+status INA226_MeasureAll(INA226* this);
 
-status INA226_SetOperatingMode(INA226*,enum eOperatingMode aOpMode);
-status INA226_Hibernate(INA226*); //Enters a very low power mode, no voltage measurements
-status INA226_Wakeup(INA226*);    //Wake-up and enter the last operating mode
+status INA226_SetOperatingMode(INA226_config*,enum eOperatingMode aOpMode);
+status INA226_Hibernate(INA226_config*); //Enters a very low power mode, no voltage measurements
+status INA226_Wakeup(INA226_config*);    //Wake-up and enter the last operating mode
 
 //The trigger value is in microwatts or microvolts, depending on the trigger
-status INA226_ConfigureAlertPinTrigger(INA226*,enum eAlertTrigger aAlertTrigger, int32_t aValue, bool aLatching);
-//status INA226_ResetAlertPin(INA226*);
-status INA226_ResetAlertPin(INA226*,enum  eAlertTriggerCause* aAlertTriggerCause_p ); //provides feedback as to what caused the alert
+status INA226_ConfigureAlertPinTrigger(INA226_config*,enum eAlertTrigger aAlertTrigger, int32_t aValue, bool aLatching);
+//status INA226_ResetAlertPin(INA226_config*);
+status INA226_ResetAlertPin(INA226_config*,enum  eAlertTriggerCause* aAlertTriggerCause_p ); //provides feedback as to what caused the alert
 
 //The parameters for the two functions below are indices into the tables defined in the INA226 spec
 //These tables are copied below for your information (caNumSamplesAveraged & caVoltageConvTimeMicroSecs)
-status INA226_ConfigureVoltageConversionTime(INA226*,int aIndexToConversionTimeTable);
-status INA226_ConfigureNumSampleAveraging(INA226*,int aIndexToSampleAverageTable);
-status INA226_Debug_GetConfigRegister(INA226*,uint16_t* aConfigReg_p);
+status INA226_ConfigureVoltageConversionTime(INA226_config*,int aIndexToConversionTimeTable);
+status INA226_ConfigureNumSampleAveraging(INA226_config*,int aIndexToSampleAverageTable);
+status INA226_Debug_GetConfigRegister(INA226_config*,uint16_t* aConfigReg_p);
 
 //Private functions
 
-status INA226_WriteRegister(INA226*,uint8_t aRegister, uint16_t aValue);
-status INA226_ReadRegister(INA226*,uint8_t aRegister, uint16_t* aValue_p);
-status INA226_setupCalibration(INA226*,double aShuntResistor_Ohms, double aMaxCurrent_Amps);
+status INA226_WriteRegister(INA226_config*,uint8_t aRegister, uint16_t aValue);
+status INA226_ReadRegister(INA226_config*,uint8_t aRegister, uint16_t* aValue_p);
+status INA226_setupCalibration(INA226_config*,double aShuntResistor_Ohms, double aMaxCurrent_Amps);
 
 
 

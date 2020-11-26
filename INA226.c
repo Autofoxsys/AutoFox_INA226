@@ -86,7 +86,7 @@ const int      cMaxSampleAvgTblIdx          = 7;    //occupies 3 bit positions
 const int      cMaxConvTimeTblIdx           = 7; //occupies 3 bit positions
 //=============================================================================
 
-void INA226_Constructor(INA226* this, void* i2c_device, uint8_t aI2C_Address)
+void INA226_Constructor(INA226_config* this, void* i2c_device, uint8_t aI2C_Address)
 {
 	this->mInitialized = false;
 	this->hi2c = i2c_device;
@@ -100,18 +100,18 @@ void INA226_Constructor(INA226* this, void* i2c_device, uint8_t aI2C_Address)
 //----------------------------------------------------------------------------
 status INA226_Init(INA226* this, void* i2c_device, uint8_t aI2C_Address, double aShuntResistor_Ohms, double aMaxCurrent_Amps)
 {
-	INA226_Constructor(this, i2c_device, aI2C_Address);
+	INA226_Constructor(&this->Config, i2c_device, aI2C_Address);
 
 	//Check if there's a device (any I2C device) at the specified address.
-	CALL_FN( INA226_CheckI2cAddress(this, aI2C_Address) );
+	CALL_FN( INA226_CheckI2cAddress(&this->Config, aI2C_Address) );
 
 	//Good so far, check that it's an INA226 device at the specified address.
 	uint16_t theINA226_ID;
-	CALL_FN( INA226_ReadRegister(this,INA226_MANUFACTURER_ID, &theINA226_ID) );
+	CALL_FN( INA226_ReadRegister(&this->Config,INA226_MANUFACTURER_ID, &theINA226_ID) );
 	if(theINA226_ID != INA226_MANUFACTURER_ID_K){
 		return INA226_TI_ID_MISMATCH; //Expected to find TI manufacturer ID
 	}
-	CALL_FN( INA226_ReadRegister(this,INA226_DIE_ID, &theINA226_ID) );
+	CALL_FN( INA226_ReadRegister(&this->Config,INA226_DIE_ID, &theINA226_ID) );
 	if( theINA226_ID != INA226_DIE_ID_K){
 		return  INA226_DIE_ID_MISMATCH; //Expected to find INA226 device ID
 	}
@@ -119,28 +119,28 @@ status INA226_Init(INA226* this, void* i2c_device, uint8_t aI2C_Address, double 
 	
 
 	//Reset the INA226 device
-	CALL_FN( INA226_WriteRegister(this,INA226_CONFIG, cResetCommand) );
+	CALL_FN( INA226_WriteRegister(&this->Config,INA226_CONFIG, cResetCommand) );
 
 	//Now set our own default configuration (you can redefine this constant in the header, as needed)
-	CALL_FN( INA226_WriteRegister(this,INA226_CONFIG, INA226_CONFIG_DEFAULT) );
+	CALL_FN( INA226_WriteRegister(&this->Config,INA226_CONFIG, INA226_CONFIG_DEFAULT) );
 
 	//Read back the configuration register and check that it matches
-	CALL_FN( INA226_ReadRegister(this,INA226_CONFIG, &(this->mConfigRegister)) );
-	if(this->mConfigRegister != INA226_CONFIG_DEFAULT){
+	CALL_FN( INA226_ReadRegister(&this->Config,INA226_CONFIG, &(this->Config.mConfigRegister)) );
+	if(this->Config.mConfigRegister != INA226_CONFIG_DEFAULT){
 		return CONFIG_ERROR;
 	}
 
 	//Finally, set up the calibration register - this will also calculate the scaling
 	//factors that we must apply to the current and power measurements that we read from
 	//the INA226 device.
-	CALL_FN( INA226_setupCalibration(this, aShuntResistor_Ohms, aMaxCurrent_Amps) );
+	CALL_FN( INA226_setupCalibration(&this->Config, aShuntResistor_Ohms, aMaxCurrent_Amps) );
 
-	this->mInitialized = true;
+	this->Config.mInitialized = true;
 	return OK;
 }
 //----------------------------------------------------------------------------
 
-status INA226_setupCalibration(INA226* this, double aShuntResistor_Ohms, double aMaxCurrent_Amps)
+status INA226_setupCalibration(INA226_config* this, double aShuntResistor_Ohms, double aMaxCurrent_Amps)
 {
 	// Calculate a value for Current_LSB that gives us the best resolution
 	// for current measurements.  The INA266 current register is 16-bit
@@ -163,7 +163,7 @@ status INA226_setupCalibration(INA226* this, double aShuntResistor_Ohms, double 
 //----------------------------------------------------------------------------
 //Check if a device exists at the specified I2C address
 
-status INA226_CheckI2cAddress(INA226* this, uint8_t aI2C_Address)
+status INA226_CheckI2cAddress(INA226_config* this, uint8_t aI2C_Address)
 {
 	if(Check_device(this, (uint16_t)aI2C_Address, 10) != 0){ //Return 0 is OK
 		return INVALID_I2C_ADDRESS;
@@ -174,7 +174,7 @@ status INA226_CheckI2cAddress(INA226* this, uint8_t aI2C_Address)
 
 //----------------------------------------------------------------------------
 
-status INA226_ReadRegister(INA226* this, uint8_t aRegister, uint16_t* aValue_p)
+status INA226_ReadRegister(INA226_config* this, uint8_t aRegister, uint16_t* aValue_p)
 {
 	*aValue_p = 0;
 
@@ -192,7 +192,7 @@ status INA226_ReadRegister(INA226* this, uint8_t aRegister, uint16_t* aValue_p)
 }
 
 //----------------------------------------------------------------------------
-status INA226_WriteRegister(INA226* this, uint8_t aRegister, uint16_t aValue)
+status INA226_WriteRegister(INA226_config* this, uint8_t aRegister, uint16_t aValue)
 {
 	uint8_t buffer[3];
 	buffer[0] = aRegister;
@@ -214,7 +214,7 @@ int32_t INA226_GetShuntVoltage_uV(INA226* this)
 	//(shift left).
 	int16_t theRegisterValue=0;
 	int32_t theResult;
-	INA226_ReadRegister(this,INA226_SHUNT_VOLTAGE, (uint16_t*)&theRegisterValue);
+	INA226_ReadRegister(&this->Config,INA226_SHUNT_VOLTAGE, (uint16_t*)&theRegisterValue);
 	theResult = (int32_t)theRegisterValue>>1;
 	theResult+= (int32_t)theRegisterValue<<1;
 	return theResult;
@@ -223,7 +223,7 @@ int32_t INA226_GetShuntVoltage_uV(INA226* this)
 int32_t INA226_GetBusVoltage_uV(INA226* this)
 {
 	uint16_t theRegisterValue=0;
-	INA226_ReadRegister(this,INA226_BUS_VOLTAGE, &theRegisterValue);
+	INA226_ReadRegister(&this->Config,INA226_BUS_VOLTAGE, &theRegisterValue);
 	return (int32_t)theRegisterValue * INA226_BUS_VOLTAGE_LSB;
 }
 
@@ -231,20 +231,28 @@ int32_t INA226_GetBusVoltage_uV(INA226* this)
 int32_t INA226_GetCurrent_uA(INA226* this)
 {
 	int16_t theRegisterValue=0; // signed register, result in mA
-	INA226_ReadRegister(this,INA226_CURRENT, (uint16_t*)&theRegisterValue);
-	return (int32_t)theRegisterValue * this->mCurrentMicroAmpsPerBit;
+	INA226_ReadRegister(&this->Config,INA226_CURRENT, (uint16_t*)&theRegisterValue);
+	return (int32_t)theRegisterValue * this->Config.mCurrentMicroAmpsPerBit;
 }
 //----------------------------------------------------------------------------
 int32_t INA226_GetPower_uW(INA226* this)
 {
 	uint16_t theRegisterValue=0;
 	int32_t theReturnValue;
-	INA226_ReadRegister(this,INA226_POWER, &theRegisterValue);
-	theReturnValue = (int32_t)theRegisterValue * this->mPowerMicroWattPerBit;
+	INA226_ReadRegister(&this->Config,INA226_POWER, &theRegisterValue);
+	theReturnValue = (int32_t)theRegisterValue * this->Config.mPowerMicroWattPerBit;
 	return theReturnValue;
 }
 //----------------------------------------------------------------------------
-status INA226_Hibernate(INA226* this)
+status INA226_MeasureAll(INA226* this){
+	int r=0;
+	r |= this->Result.ShuntVoltage_uV	=		INA226_GetShuntVoltage_uV(this);
+	r |= this->Result.BusVoltage_uV		=		INA226_GetBusVoltage_uV(this);
+	r |= this->Result.Current_uA		=		INA226_GetCurrent_uA(this);
+	r |= this->Result.Power_uW			=		INA226_GetPower_uW(this);
+	return r;
+}
+status INA226_Hibernate(INA226_config* this)
 {
 	CHECK_INITIALIZED();
 	//Make a most recent copy of the configuration register, which also contains
@@ -257,7 +265,7 @@ status INA226_Hibernate(INA226* this)
 	return INA226_WriteRegister(this,INA226_CONFIG, theTempConfigValue);
 }
 //----------------------------------------------------------------------------
-status INA226_Wakeup(INA226* this)
+status INA226_Wakeup(INA226_config* this)
 {
 	CHECK_INITIALIZED();
 	//Write most recent copy of the calibration register - which should restore
@@ -274,7 +282,7 @@ status INA226_Wakeup(INA226* this)
 	return INA226_WriteRegister(this,INA226_CONFIG, this->mConfigRegister);
 }
 //----------------------------------------------------------------------------
-status INA226_SetOperatingMode(INA226* this, enum eOperatingMode aOpMode)
+status INA226_SetOperatingMode(INA226_config* this, enum eOperatingMode aOpMode)
 {
 	CHECK_INITIALIZED();
 	CALL_FN( INA226_ReadRegister(this,INA226_CONFIG, &(this->mConfigRegister)) );
@@ -286,7 +294,7 @@ status INA226_SetOperatingMode(INA226* this, enum eOperatingMode aOpMode)
 	return INA226_WriteRegister(this,INA226_CONFIG, this->mConfigRegister);
 }
 //----------------------------------------------------------------------------
-status  INA226_ConfigureAlertPinTrigger(INA226* this, enum eAlertTrigger aAlertTrigger, int32_t aValue, bool aLatching)
+status  INA226_ConfigureAlertPinTrigger(INA226_config* this, enum eAlertTrigger aAlertTrigger, int32_t aValue, bool aLatching)
 {
 	uint16_t theMaskEnableRegister;
 
@@ -349,7 +357,7 @@ status  INA226_ConfigureAlertPinTrigger(INA226* this, enum eAlertTrigger aAlertT
 //	return INA226_ReadRegister(this,INA226_MASK_ENABLE, theDummyValue);
 //}
 //----------------------------------------------------------------------------
-status INA226_ResetAlertPin(INA226* this, enum  eAlertTriggerCause* aAlertTriggerCause_p )
+status INA226_ResetAlertPin(INA226_config* this, enum  eAlertTriggerCause* aAlertTriggerCause_p )
 {
 	//preset the return parameter in case the function fails
 	*aAlertTriggerCause_p = Unknown;
@@ -368,7 +376,7 @@ status INA226_ResetAlertPin(INA226* this, enum  eAlertTriggerCause* aAlertTrigge
 	return OK;
 }
 //----------------------------------------------------------------------------
-status INA226_ConfigureVoltageConversionTime(INA226* this, int aIndexToConversionTimeTable)
+status INA226_ConfigureVoltageConversionTime(INA226_config* this, int aIndexToConversionTimeTable)
 {
 	CHECK_INITIALIZED();
 
@@ -390,7 +398,7 @@ status INA226_ConfigureVoltageConversionTime(INA226* this, int aIndexToConversio
 	return INA226_WriteRegister(this,INA226_CONFIG, this->mConfigRegister);
 }
 //----------------------------------------------------------------------------
-status INA226_ConfigureNumSampleAveraging(INA226* this, int aIndexToSampleAverageTable)
+status INA226_ConfigureNumSampleAveraging(INA226_config* this, int aIndexToSampleAverageTable)
 {
 	CHECK_INITIALIZED();
 
@@ -408,7 +416,7 @@ status INA226_ConfigureNumSampleAveraging(INA226* this, int aIndexToSampleAverag
 	return INA226_WriteRegister(this,INA226_CONFIG, this->mConfigRegister);
 }
 //----------------------------------------------------------------------------
-status INA226_Debug_GetConfigRegister(INA226* this, uint16_t* aConfigReg_p)
+status INA226_Debug_GetConfigRegister(INA226_config* this, uint16_t* aConfigReg_p)
 {
 	CHECK_INITIALIZED();
 	//Read the configuration register
